@@ -1,0 +1,62 @@
+"""
+This file contains an example config.py file containing key variables used
+throughout this project.
+
+"""
+
+
+# PROJECT DIRECTORIES #
+
+project_dir = '/home/user/projects/web2pubmed/'
+original_datasets = '{}/original_datasets'.format(project_dir)
+full_datasets_path = '{}/final_datasets'.format(project_dir)
+train_test_datasets = '{}/final_datasets/train_test_datasets'.format(project_dir)
+results_datasets = '{}/results/datasets'.format(project_dir)
+results_metrics = '{}/results/evaluation_metrics'.format(project_dir)
+
+
+# FILES #
+final_pm_corpus_file = 'final_pubmed_corpus'
+final_web_corpus_file = 'final_web_corpus'
+final_known_links_file = 'final_web_pubmed_links'
+
+
+# HYPERPARAMETERS #
+train_portion = 0.7
+test_portion = 1 - train_portion
+
+all_params = {
+    'thresholds_no_cca': {
+        'feature_extraction': ['Binary',
+                               'TF',
+                               'TF-IDF',
+                               ],
+        'dimensionality_reduction': ['Thresholds'],
+        'tsvd_components': [None],
+        'min_dfs': [2],
+        'max_dfs': [0.85],
+        'cca': [False],
+        'cca_components': [None],
+    },
+    'tsvd_no_cca': {
+        'feature_extraction': ['Binary',
+                               'TF',
+                               'TF-IDF',
+                               ],
+        'dimensionality_reduction': ['TSVD'],
+        'tsvd_components': [100, 200, 400, 600, 800, 1600],
+        'min_dfs': [2],
+        'max_dfs': [1.0],
+        'cca': [False],
+        'cca_components': [None],
+    },
+    'tsvd_cca': {
+        'feature_extraction': ['TF-IDF'],
+        'dimensionality_reduction': ['TSVD'],
+        'tsvd_components': [100, 200, 400, 600, 800, 1600],
+        'min_dfs': [1],
+        'max_dfs': [1.0],
+        'cca': [True],
+        'cca_components': [50, 100, 200, 400, 600, 800]
+    },
+}
