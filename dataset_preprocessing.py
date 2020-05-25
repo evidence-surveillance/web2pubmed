@@ -13,8 +13,43 @@ import numpy as np
 import pandas as pd
 import itertools
 import re
+import pickle
+import json
+from collections import OrderedDict
 
 min_len_threshold = 100
+
+
+def make_directory(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+        print('New directory created: {}'.format(path))
+
+
+def pickle_dump(data, outfile):
+    pickle.dump(data,
+                open(outfile, 'wb'), )
+
+
+def pickle_load(infile):
+    return pickle.load(open(infile, 'rb'))
+
+
+def json_dump(data_dict, outfile, ordered=False):
+    if ordered:
+        json.dump(data_dict, open(outfile, 'w'),
+                  indent=4, )
+    else:
+        json.dump(data_dict, open(outfile, 'w'),
+                  indent=4, )
+
+
+def json_load(infile, ordered=False):
+    if ordered:
+        return json.load(open(infile, 'r'),
+                         object_pairs_hook=OrderedDict, )
+    else:
+        return json.load(open(infile, 'r'), )
 
 
 def load_webpages():
@@ -22,7 +57,7 @@ def load_webpages():
     Loads webpage data from original file
     Returns
     -------
-    web_data, web_pm_links : tuple
+    web_data, known_links : tuple
         Contains the raw, unprocessed webpage data and full set of URL to PMID links
 
     """
@@ -44,10 +79,10 @@ def load_webpages():
                           ]).reset_index(inplace=True)
     print('Number of webpages with known links to vaccine-related PubMed research: {}'.format(len(web_data)))
 
-    web_pm_links = web_data.loc[:, ['pmid', 'final_url']].sort_values('pmid')
-    print('Number of URL-PMID pairings in Altmetric data: {}\n'.format(len(web_pm_links)))
+    known_links = web_data.loc[:, ['pmid', 'final_url']].sort_values('pmid')
+    print('Number of URL-PMID pairings in Altmetric data: {}\n'.format(len(known_links)))
 
-    return web_data, web_pm_links
+    return web_data, known_links
 
 
 def prep_pubmed(raw_pubmed_data):
@@ -221,12 +256,13 @@ def prep_web(raw_webpage_data, clean_pubmed_data):
     clean_webpage_data['pmid_count'] = pd.DataFrame(clean_webpage_data.groupby('pmid')['pmid'].transform('size'))
     clean_webpage_data['url_count'] = pd.DataFrame(
         clean_webpage_data.groupby('final_url')['final_url'].transform('size'))
-
+    '''
     dup_pmid_subset = clean_webpage_data.loc[clean_webpage_data['pmid_count'] > 1].sort_values(['pmid', 'corpus_text'])
     dup_url_subset = clean_webpage_data.loc[clean_webpage_data['url_count'] > 1].sort_values(
         ['final_url', 'corpus_text'])
     dup_pmid_grouped = dup_pmid_subset.groupby('pmid')
     dup_url_grouped = dup_url_subset.groupby('final_url')
+    '''
 
     return clean_webpage_data
 
@@ -545,17 +581,16 @@ def select_one_to_one_links(webpage_data_post_lcs):
 
 if __name__ == '__main__':
     # LOAD DATA #
+    os.chdir(config.original_datasets)
     pm_articles = pd.read_pickle('PubMed_Data_Downloaded_ALL.pkl').set_index('pmid')
     print('\nNumber of PubMed articles downloaded via API: {}'.format(len(pm_articles)))
 
     webpages_raw, web_pm_links = load_webpages()
 
-    # INITIALISE DIRECTORY FOR FINAL DATASETS #
-    final_datasets_dir = config.final_datasets_path
-    if not os.path.exists(final_datasets_dir):
-        os.makedirs(final_datasets_dir)
-
-    os.chdir(final_datasets_dir)
+    # CREATE DIRECTORY FOR FINAL, PROCESSED DATASETS #
+    final_datasets_dir = config.full_datasets_path
+    make_directory(final_datasets_dir)
+    os.chdir(final_datasets_dir)  # Directory for final, processed datasets
 
     # CLEAN & PRE-PROCESS DATA #
     pm_articles_clean = prep_pubmed(pm_articles)
@@ -627,10 +662,10 @@ if __name__ == '__main__':
                                drop=True,
                                inplace=True,
                                )
-    final_web_corpus.to_pickle('final_web_corpus.pkl')
-    final_web_corpus.to_csv('final_web_corpus.csv')
-    final_links_corpus.to_pickle('final_web_pubmed_links.pkl')
-    final_links_corpus.to_csv('final_web_pubmed_links.csv')
+    final_web_corpus.to_pickle(config.final_web_corpus_file + '.pkl')
+    final_web_corpus.to_csv(config.final_web_corpus_file + '.csv')
+    final_links_corpus.to_pickle(config.final_known_links_file + '.pkl')
+    final_links_corpus.to_csv(config.final_known_links_file + '.csv')
 
     # final_pm_corpus: Final set of distinct PubMed articles, with no webpage info or links
     final_pm_corpus = pm_articles_clean[['pmid',
@@ -650,5 +685,6 @@ if __name__ == '__main__':
                               drop=True,
                               inplace=True,
                               )
-    final_pm_corpus.to_pickle('final_pubmed_corpus.pkl')
-    final_pm_corpus.to_csv('final_pubmed_corpus.csv')
+    final_pm_corpus.to_pickle(config.final_pm_corpus_file + '.pkl')
+    final_pm_corpus.to_csv(config.final_pm_corpus_file + '.csv')
+
